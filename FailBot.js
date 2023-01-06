@@ -54,7 +54,20 @@ this.msg_offline = () => {
 
 if(this.$api.twitch.is_connected()) this.msg_online();
 
+twitch_connection((state) => {
+	if(state) this.msg_online();
+});
+
 settings_define({
+	sleeping: {
+		type: "checkbox",
+		label: "Sleeping -  fail and fix actions are inactive",
+		value: this.store.sleeping,
+		changed: (value) => {
+			this.store.sleeping = value;
+			this.$api.datastore.export(this.store);
+		}
+	},
 	intro_message: {
 		type: "checkbox",
 		label: "Send message in chat when FailBot goes online",
@@ -90,10 +103,6 @@ script_message_rcv((caller_reference_name, message, reply_callback) => {
 	}
 });
 
-twitch_connection((state) => {
-	if(state) this.msg_online();
-});
-
 exit(() => {
 	this.msg_offline();
 	console.log("FailBot exited");
@@ -103,7 +112,7 @@ run(() => {
 	this.store.script_enabled = !this.store.script_enabled;
 	if(this.store.script_enabled) {
 		if(this.store.intro_message) {
-			this.$api.twitch.send_message("/me FailBot is now enabled and " + (this.store.sleeping ? "sleeping" : active));
+			this.$api.twitch.send_message("/me FailBot is now enabled and " + (this.store.sleeping ? "sleeping" : "active") + "!");
 		}
 	} else {
 		if(this.store.outro_message) {
