@@ -146,6 +146,7 @@ twitch_message((message) => {
 			let msg_params = message.parameters.split(" ");
 
 			switch(msg_params[0].toLowerCase()){
+				case '!commands':
 				case "!failbot": {
 					this.commands.failBot(reply_prefix);
 					break;
