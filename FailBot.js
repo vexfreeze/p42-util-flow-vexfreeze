@@ -32,10 +32,9 @@ const config = {
 
 this.store = {
 	script_enabled: true,
-	// TODO: Separate action to toggle sleeping
-	sleeping: false,
 	intro_message: false,
 	outro_message: false,
+	sleeping: false,
 };
 
 const persisted = this.$api.datastore.import();
@@ -82,6 +81,20 @@ settings_define({
 			this.store.outro_message = value;
 			this.$api.datastore.export(this.store);
 		}
+	}
+});
+
+script_message_rcv((caller_reference_name, message, reply_callback) => {
+	if(message === "sleeping"){
+		reply_callback(this.store.sleeping);
+		return;
+	}
+
+	if(message === "toggle_sleep"){
+		this.store.sleeping = !this.store.sleeping;
+		this.$api.datastore.export(this.store);
+		reply_callback(this.store.sleeping);
+		return;
 	}
 });
 
@@ -224,13 +237,11 @@ this.engine = {
 	isFailed: (engineNumber) => {
 		const condition = config.engine.failedCondition[engineNumber];
 		const value = this.$api.variables.get(condition.variable, condition.type);
-		console.log(["Failed", engineNumber, value, value === condition.value].join(" "));
 		return value === condition.value;
 	},
 	isRunning: (engineNumber) => {
 		const condition = config.engine.runningCondition[engineNumber];
 		const value = this.$api.variables.get(condition.variable, condition.type);
-		console.log(["Running", engineNumber, value, value === condition.value].join(" "));
 		return value === condition.value;
 	},
 	isAllRunning: () => {
@@ -272,11 +283,6 @@ this.engine = {
 		}
 	
 		const failAction = config.engine.failAction[engineNumber];
-	
-		console.log([failAction.variable, 
-			failAction.type, 
-			failAction.value].join(", "));
-	
 		this.$api.variables.set( failAction.variable, failAction.type, failAction.value);
 	},
 	fix: (engineNumber) => {
