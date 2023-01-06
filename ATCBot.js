@@ -7,8 +7,8 @@ this.store = {
 const persisted = this.$api.datastore.import();
 this.store = persisted ? persisted : this.store;
 
-this.msg_online = () => (this.store.intro_message ? this.$api.twitch.send_message('ATCBot says hi!') : null);
-this.msg_offline = () => (this.store.outro_message ? this.$api.twitch.send_message('ATCBot is going offline!') : null);
+this.msg_online = () => (this.store.intro_message ? this.$api.twitch.send_message('/me ATCBot is online and ' + (this.store.script_enabled ? 'active' : 'disabled') + '!') : null);
+this.msg_offline = () => (this.store.outro_message ? this.$api.twitch.send_message('/me ATCBot is going offline!') : null);
 
 if(this.$api.twitch.is_connected()) this.msg_online();
 
@@ -46,11 +46,11 @@ run(() => {
 	this.store.script_enabled = !this.store.script_enabled;
 	if(this.store.script_enabled) {
 		if(this.store.intro_message) {
-			this.$api.twitch.send_message('ATCBot is now enabled.');
+			this.$api.twitch.send_message('/me ATCBot is now enabled.');
 		}
 	} else {
 		if(this.store.outro_message) {
-			this.$api.twitch.send_message('ATCBot is now disabled!');
+			this.$api.twitch.send_message('/me ATCBot is now disabled!');
 		}
 	}
 	this.$api.datastore.export(this.store);
@@ -66,10 +66,8 @@ twitch_message((message) => {
 
 			switch(msg_params[0]){
 
-				case '!atcbot':
-				case '!command':
 				case '!commands':
-				case '!cmd': {
+				case '!atcbot': {
 					const msg = [
 						'!flight',
 						'!server',
@@ -78,6 +76,7 @@ twitch_message((message) => {
 						'!altitude',
 						'!aircraft',
 						'!nearest',
+                        '!wind',
 						'!wx',
 						'!runways'
 					];
