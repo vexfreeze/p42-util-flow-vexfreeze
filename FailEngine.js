@@ -3,20 +3,20 @@ const engineNumber = 1;
 const config = {
 	engine: {
 		failedCondition: {
-			1: { variable: "A:FUEL TANK SELECTOR:1", type: "Enum", value: 0 },
-			2: { variable: "A:FUEL TANK SELECTOR:2", type: "Enum", value: 0 },
+			1: { variable: "A:ENG FAILED:1", type: "Bool", value: 1 },
+			2: { variable: "A:ENG FAILED:2", type: "Bool", value: 1 },
 		},
 		runningCondition: {
 			1: { variable: "A:ENG COMBUSTION:1", type: "Bool", value: 1 },
 			2: { variable: "A:ENG COMBUSTION:2", type: "Bool", value: 1 },
 		},
 		failAction: {
-			1: { variable: "K:FUEL_SELECTOR_SET", type: "Enum", value: 0, },
-			2: { variable: "K:FUEL_SELECTOR_2_SET", type: "Enum", value: 0, },
+			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Enum", value: 1, },
 		},
 		fixAction: {
-			1: { variable: "K:FUEL_SELECTOR_SET", type: "Enum", value: 2, },
-			2: { variable: "K:FUEL_SELECTOR_2_SET", type: "Enum", value: 3, },
+			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
 		},
 	},
 };
