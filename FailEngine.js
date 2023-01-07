@@ -22,7 +22,7 @@ const config = {
 };
 
 run(() => {
-	if(!this.engine.isFailed(engineNumber)){
+	if (!this.engine.isFailed(engineNumber)) {
 		this.engine.fail(engineNumber);
 	} else {
 		this.engine.fix(engineNumber);
@@ -40,15 +40,15 @@ info(() => {
 	return "Engine " + engineNumber + " " + engineState;
 })
 
-style(() => {	
-	if(this.engine.isRunning(engineNumber)) {
+style(() => {
+	if (this.engine.isRunning(engineNumber)) {
 		return "active";
 	}
 
-	if(this.engine.isFailed(engineNumber)) {
+	if (this.engine.isFailed(engineNumber)) {
 		return "error";
 	}
-	
+
 	return null;
 });
 
@@ -64,30 +64,30 @@ this.engine = {
 		return value === condition.value;
 	},
 	getState: (engineNumber) => {
-		if(this.engine.isRunning(engineNumber)) {
+		if (this.engine.isRunning(engineNumber)) {
 			return "Running";
 		}
-	
-		if(this.engine.isFailed(engineNumber)) {
+
+		if (this.engine.isFailed(engineNumber)) {
 			return "Failed";
 		}
-	
+
 		return "Off";
 	},
 	fail: (engineNumber) => {
-		if(this.engine.isFailed(engineNumber)) {
+		if (this.engine.isFailed(engineNumber)) {
 			return;
 		}
-	
+
 		const failAction = config.engine.failAction[engineNumber];
-		this.$api.variables.set( failAction.variable, failAction.type, failAction.value);
+		this.$api.variables.set(failAction.variable, failAction.type, failAction.value);
 	},
 	fix: (engineNumber) => {
-		if(!this.engine.isFailed(engineNumber)) {
+		if (!this.engine.isFailed(engineNumber)) {
 			return;
 		}
-	
+
 		const fixAction = config.engine.fixAction[engineNumber];
-		this.$api.variables.set( fixAction.variable, fixAction.type, fixAction.value);
+		this.$api.variables.set(fixAction.variable, fixAction.type, fixAction.value);
 	},
 }
