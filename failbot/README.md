@@ -15,3 +15,22 @@ Widgets to show engine RPM/% and start/stop all engines with click
 Configurable behavior
 
 ![image](https://user-images.githubusercontent.com/52785190/215334910-96999dde-b3b9-45a4-96f9-84b32643af65.png)
+
+Chat example for Seneca V
+
+![image](https://user-images.githubusercontent.com/52785190/215335167-cbc95bfe-492c-4cf0-9e5d-f59088d62834.png)
+
+
+![image](https://user-images.githubusercontent.com/52785190/215335217-109868d4-93d6-4e7e-8d6a-2c2abe03e627.png)
+
+Known issues:
+- Not tested this on 0 engines aircraft as I couldn't find one
+- Fuel off does not work on jets
+- No event to auto start/stop specific engine so it starts/stops all at the moment
+- Not thoroughly tested so something may pop up
+
+To do:
+- React on channel points redemptions
+- Restrict certain commands to Mods/VIPs/etc.
+- Commands configurable to be on message or redemption
+- Add more failures!
