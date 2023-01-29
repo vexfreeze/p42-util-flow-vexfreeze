@@ -1,30 +1,53 @@
+const conditions = {
+	engine: {
+		0: { minRunning: 0, maxFailed: 0 },
+		1: { minRunning: 0, maxFailed: 1 },
+		2: { minRunning: 1, maxFailed: 1 },
+		3: { minRunning: 1, maxFailed: 2 },
+		4: { minRunning: 1, maxFailed: 3 },
+	}
+}
+
 const config = {
 	engine: {
 		failedCondition: {
 			1: { variable: "A:ENG FAILED:1", type: "Bool", value: 1 },
 			2: { variable: "A:ENG FAILED:2", type: "Bool", value: 1 },
+			3: { variable: "A:ENG FAILED:3", type: "Bool", value: 1 },
+			4: { variable: "A:ENG FAILED:4", type: "Bool", value: 1 },
 		},
 		runningCondition: {
 			1: { variable: "A:ENG COMBUSTION:1", type: "Bool", value: 1 },
 			2: { variable: "A:ENG COMBUSTION:2", type: "Bool", value: 1 },
+			3: { variable: "A:ENG COMBUSTION:3", type: "Bool", value: 1 },
+			4: { variable: "A:ENG COMBUSTION:4", type: "Bool", value: 1 },
 		},
 		failAction: {
 			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
 			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
+			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
+			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
 		fixAction: {
 			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
 			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
+			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
+			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
+		count: { variable: "A:NUMBER OF ENGINES", type: "Number" }, // minimum 0, maximum 4
 	},
 	fuel: {
 		offCondition: {
 			1: { variable: "A:FUEL TANK SELECTOR:1", type: "Enum", value: 0 },
 			2: { variable: "A:FUEL TANK SELECTOR:2", type: "Enum", value: 0 },
+			3: { variable: "A:FUEL TANK SELECTOR:3", type: "Enum", value: 0 },
+			4: { variable: "A:FUEL TANK SELECTOR:4", type: "Enum", value: 0 },
 		},
 		offAction: {
 			1: { variable: "K:FUEL_SELECTOR_SET", type: "Enum", value: 0, },
 			2: { variable: "K:FUEL_SELECTOR_2_SET", type: "Enum", value: 0, },
+			3: { variable: "K:FUEL_SELECTOR_3_SET", type: "Enum", value: 0, },
+			4: { variable: "K:FUEL_SELECTOR_4_SET", type: "Enum", value: 0, },
 		},
 	}
 };
@@ -162,7 +185,8 @@ twitch_message((message) => {
 					break;
 				}
 
-				case "!checkengine": {
+				case "!checkengine":
+				case "!checkengines": {
 					this.commands.checkEngine(reply_prefix);
 					break;
 				}
@@ -177,13 +201,14 @@ twitch_message((message) => {
 					break;
 				}
 
-				case "!fixengine": {
+				case "!fixengine":
+				case "!fixengines": {
 					if (this.store.sleeping) {
 						this.commands.sleeping(reply_prefix);
 						break;
 					}
 
-					this.commands.fixEngine(reply_prefix);
+					this.commands.fixEngines(reply_prefix);
 					break;
 				}
 
@@ -222,49 +247,72 @@ this.commands = {
 		this.$api.twitch.send_message("FailBot: Sleeping... Zzz...", reply_prefix);
 	},
 	checkEngine: (reply_prefix) => {
-		const engine1 = "Engine 1 is " + this.engine.getState(1) + ". ";
-		const engine2 = "Engine 2 is " + this.engine.getState(2) + ". ";
-		this.$api.twitch.send_message("FailBot: " + engine1 + engine2, reply_prefix);
+		const enginesCount = this.engine.getCount();
+		let message = "";
+
+		for (let i = 0; i < enginesCount; i++) {
+			const engineNumber = i + 1;
+			message += "Engine " + engineNumber + " is " + this.engine.getState(engineNumber) + ". ";
+		}
+		
+		this.$api.twitch.send_message("FailBot: " + message, reply_prefix);
 	},
 	failEngine: (reply_prefix) => {
-		if (this.engine.isAnyFailed()) {
-			this.$api.twitch.send_message("FailBot: Umm... One engine has already failed", reply_prefix);
+		const enginesCount = this.engine.getCount();
+
+		const enginesFailedCount = this.engine.getFailedCount();
+		const maxFailed = conditions.engine[enginesCount].maxFailed;
+		if (enginesFailedCount >= maxFailed) {
+			this.$api.twitch.send_message("FailBot: Umm... We already have " + enginesFailedCount + " failed engine" + (enginesFailedCount > 1 ? "s" : ""), reply_prefix);
 			return;
 		}
 
-		if (!this.engine.isAllRunning()) {
-			this.$api.twitch.send_message("FailBot: Umm... We really need one at least one engine running", reply_prefix);
+		const enginesRunningCount = this.engine.getRunningCount();
+		const minRunning = conditions.engine[enginesCount].minRunning;
+		if (enginesRunningCount <= minRunning) {
+			this.$api.twitch.send_message("FailBot: Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
 		}
 
-		const engineNumber = this.utils.random(1, 2);
+		const runningEngines = this.engine.getRunningEngines();
+		const engineNumber = this.utils.random(1, runningEngines.length);
 		this.engine.fail(engineNumber);
-		this.$api.twitch.send_message("FailBot: Aye Captain! Failed Engine " + engineNumber, reply_prefix);
+		this.$api.twitch.send_message("FailBot: Aye Captain!", reply_prefix);
 	},
-	fixEngine: (reply_prefix) => {
+	fixEngines: (reply_prefix) => {
 		if (!this.engine.isAnyFailed()) {
 			this.$api.twitch.send_message("FailBot: Umm... All engines are fine", reply_prefix);
 			return;
 		}
 
-		this.engine.fix(1);
-		this.engine.fix(2);
+		this.engine.fixAll();
 		this.$api.twitch.send_message("FailBot: Consider it done!", reply_prefix);
 	},
 	checkFuel: (reply_prefix) => {
-		const fuelSelector1 = "Fuel Selector 1 is " + this.fuel.getState(1) + ". ";
-		const fuelSelector2 = "Fuel Selector 2 is " + this.fuel.getState(2) + ". ";
-		this.$api.twitch.send_message("FailBot: " + fuelSelector1 + fuelSelector2, reply_prefix);
+		const enginesCount = this.engine.getCount();
+		let message = "";
+
+		for (let i = 0; i < enginesCount; i++) {
+			const engineNumber = i + 1;
+			message += "Fuel Selector " + engineNumber + " is " + this.fuel.getState(engineNumber) + ". ";
+		}
+
+		this.$api.twitch.send_message("FailBot: " + message, reply_prefix);
 	},
 	fuelOff: (reply_prefix) => {
-		if (!this.engine.isAllRunning()) {
-			this.$api.twitch.send_message("FailBot: Umm... We really need one at least one engine running", reply_prefix);
+		const enginesCount = this.engine.getCount();
+
+		const enginesRunningCount = this.engine.getRunningCount();
+		const minRunning = conditions.engine[enginesCount].minRunning;
+		if (enginesRunningCount <= minRunning) {
+			this.$api.twitch.send_message("FailBot: Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
 		}
 
-		const fuelSelectorNumber = this.utils.random(1, 2);
+		const runningEngines = this.engine.getRunningEngines();
+		const fuelSelectorNumber = this.utils.random(1, runningEngines.length);
 		this.fuel.off(fuelSelectorNumber);
-		this.$api.twitch.send_message("FailBot: Aye Captain! Fuel off for Engine " + fuelSelectorNumber, reply_prefix);
+		this.$api.twitch.send_message("FailBot: Aye Captain!", reply_prefix);
 	},
 }
 
@@ -279,27 +327,61 @@ this.engine = {
 		const value = this.$api.variables.get(condition.variable, condition.type);
 		return value === condition.value;
 	},
-	isAllRunning: () => {
-		if (!this.engine.isRunning(1)) {
-			return false;
-		}
-
-		if (!this.engine.isRunning(2)) {
-			return false;
-		}
-
-		return true;
-	},
 	isAnyFailed: () => {
-		if (this.engine.isFailed(1)) {
-			return true;
+		const enginesCount = this.engine.getCount();
+		let isAnyFailed = false;
+
+		for (let i = 0; i < enginesCount; i++) {
+			let engineNumber = i + 1;
+			if (this.engine.isFailed(engineNumber)) {
+				isAnyFailed = true;
+			}
 		}
 
-		if (this.engine.isFailed(2)) {
-			return true;
+		return isAnyFailed;
+	},
+	getCount: () => {
+		const condition = config.engine.count;
+		return this.$api.variables.get(condition.variable, condition.type);
+	},
+	getRunningCount: () => {
+		const enginesCount = this.engine.getCount();
+		let runningCount = 0;
+
+		for (let i = 0; i < enginesCount; i++) {
+			let engineNumber = i + 1;
+			if (this.engine.isRunning(engineNumber)) {
+				runningCount++;
+			}
 		}
 
-		return false;
+		return runningCount;
+	},
+	getRunningEngines: () => {
+		const enginesCount = this.engine.getCount();
+		let runningEngines = [];
+
+		for (let i = 0; i < enginesCount; i++) {
+			let engineNumber = i + 1;
+			if (this.engine.isRunning(engineNumber)) {
+				runningEngines.push(engineNumber);
+			}
+		}
+
+		return runningEngines;
+	},
+	getFailedCount: () => {
+		const enginesCount = this.engine.getCount();
+		let failedCount = 0;
+
+		for (let i = 0; i < enginesCount; i++) {
+			let engineNumber = i + 1;
+			if (this.engine.isFailed(engineNumber)) {
+				failedCount++;
+			}
+		}
+
+		return failedCount;
 	},
 	getState: (engineNumber) => {
 		if (this.engine.isRunning(engineNumber)) {
@@ -328,6 +410,13 @@ this.engine = {
 		const fixAction = config.engine.fixAction[engineNumber];
 		this.$api.variables.set(fixAction.variable, fixAction.type, fixAction.value);
 	},
+	fixAll: () => {
+		const enginesCount = this.engine.getCount();
+		for (let i = 0; i < enginesCount; i++) {
+			let engineNumber = i + 1;
+			this.engine.fix(engineNumber);
+		}
+	}
 }
 
 this.fuel = {
