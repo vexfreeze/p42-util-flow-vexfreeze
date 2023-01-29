@@ -4,7 +4,9 @@ Fail or fix engines from twitch chat
 
 Widget to put failbot sleep or wake it up
 
-![image](https://user-images.githubusercontent.com/52785190/215334877-b9851da8-95da-45ea-9afb-2f742070af2b.png)
+![image](https://user-images.githubusercontent.com/52785190/215335602-b81fa737-3d40-4622-ae9a-b74cfc6a49c0.png)
+![image](https://user-images.githubusercontent.com/52785190/215335733-2699bedb-262d-4777-bf2c-9d4bd640e3c9.png)
+
 
 Widgets to show engine state (Off/Running/Failed) and fail or fix engine with click
 
