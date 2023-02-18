@@ -1,16 +1,17 @@
 const fetch_interval_seconds = 60;
-const route_message = 'Route: ';
-let route_data = "Not loaded from simbrief yet";
+const route_prefix = 'Route: ';
 
 let last_fetch = null;
 
 const app = this;
 
 app.store = {
-    script_enabled: false,
+    simbrief_id: null,
+    update_message: true,
     intro_message: false,
     outro_message: false,
-    simbrief_id: null,
+    script_enabled: false,
+    route: "Not loaded from simbrief yet",
 }
 
 const persisted = app.$api.datastore.import();
@@ -28,6 +29,15 @@ settings_define({
         value: app.store.simbrief_id,
         changed: (value) => {
             app.store.simbrief_id = value;
+            app.$api.datastore.export(app.store);
+        }
+    },
+    update_message: {
+        type: 'checkbox',
+        label: 'Send route update in chat',
+        value: app.store.update_message,
+        changed: (value) => {
+            app.store.update_message = value;
             app.$api.datastore.export(app.store);
         }
     },
@@ -53,6 +63,7 @@ settings_define({
 
 script_message_rcv((caller_reference_name, message, reply_callback) => {
     if (message === "refresh" && app.store.script_enabled) {
+        console.log("Refresh");
         app.fetchSimBrief();
     }
 });
@@ -102,7 +113,7 @@ twitch_message((message) => {
 
             switch (msg_params[0].toLowerCase()) {
                 case '!route': {
-                    app.$api.twitch.send_message(route_data, reply_prefix);
+                    app.$api.twitch.send_message(app.store.route, reply_prefix);
                     break;
                 }
             }
@@ -152,16 +163,19 @@ app.fetchSimBrief = () => {
 }
 
 app.setRoute = (data) => {
-    const previous_route_data = route_data;
-
-    route_data = route_message
+    route = route_prefix
         + data.origin.icao_code + '/' + data.origin.plan_rwy + ' '
         + data.general.route + ' '
         + data.destination.icao_code + '/' + data.destination.plan_rwy;
 
-    if (previous_route_data != route_data) {
-        console.log(route_data);
-        app.$api.twitch.send_message(route_data);
+    if (route != app.store.route) {
+        console.log(route);
+        app.store.route = route;
+        app.$api.datastore.export(app.store);
+
+        if (app.store.script_enabled && app.store.update_message) {
+            app.$api.twitch.send_message(route);
+        }
     } else {
         console.log("No route change");
     }
