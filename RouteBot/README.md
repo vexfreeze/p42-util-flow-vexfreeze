@@ -7,7 +7,6 @@ RouteBot checks simbrief every minute and will post new route on change or when 
 ![image](https://user-images.githubusercontent.com/52785190/219901579-6c1e4497-2f5c-45c5-ba7b-9d3cd1c370d4.png)
 
 ![image](https://user-images.githubusercontent.com/52785190/219902155-b3ff38df-c8c2-441a-b5b9-51faf584a8fb.png)
-
 ![image](https://user-images.githubusercontent.com/52785190/219902160-057e72cd-9254-4119-bb20-376d2dde53b0.png)
 
 
