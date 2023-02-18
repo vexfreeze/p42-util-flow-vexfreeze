@@ -68,6 +68,11 @@ run(() => {
     return true;
 });
 
+exit(() => {
+	app.msg_offline();
+	console.log("RouteBot exited");
+});
+
 twitch_message((message) => {
     if (app.store.script_enabled && message.parameters) {
         if (message.tags ? message.tags["display-name"] : false) {
