@@ -1,6 +1,6 @@
 # Description
 
-Use !route command in twitch chat to show SimBrief Route
+Use !route command in twitch chat to show latest SimBrief Route
 
 RouteBot checks simbrief every minute and will post new route on change or when flight is loaded
 
