@@ -68,10 +68,25 @@ run(() => {
     return true;
 });
 
-exit(() => {
-    app.msg_offline();
-    console.log("RouteBot exited");
-});
+state(() => {
+    return 'mdi:routes';
+})
+
+info(() => {
+    if (this.$api.twitch.is_connected()) {
+        return !this.store.script_enabled ? 'RouteBot Disabled' : 'RouteBot Enabled';
+    } else {
+        return 'RouteBot Unavailable';
+    }
+})
+
+style(() => {
+    if (this.$api.twitch.is_connected()) {
+        return this.store.script_enabled ? 'active' : 'error';
+    } else {
+        return 'error';
+    }
+})
 
 twitch_message((message) => {
     if (app.store.script_enabled && message.parameters) {
@@ -98,6 +113,11 @@ loop_1hz(() => {
     if (now - last_fetch > fetch_interval_seconds * 1000) {
         app.fetchSimBrief();
     }
+});
+
+exit(() => {
+    app.msg_offline();
+    console.log("RouteBot exited");
 });
 
 app.fetchSimBrief = () => {
@@ -136,6 +156,8 @@ app.setRoute = (data) => {
     if (previous_route_data != route_data) {
         console.log(route_data);
         app.$api.twitch.send_message(route_data);
+    } else {
+        console.log("No route change");
     }
 }
 
