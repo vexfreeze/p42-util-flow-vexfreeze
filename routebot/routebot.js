@@ -51,6 +51,12 @@ settings_define({
     }
 })
 
+script_message_rcv((caller_reference_name, message, reply_callback) => {
+    if (message === "refresh" && app.store.script_enabled) {
+        app.fetchSimBrief();
+    }
+});
+
 run(() => {
     app.store.script_enabled = !app.store.script_enabled;
     if (app.store.script_enabled) {
