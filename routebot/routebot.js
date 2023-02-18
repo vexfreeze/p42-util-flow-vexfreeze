@@ -7,7 +7,7 @@ let last_fetch = null;
 const app = this;
 
 app.store = {
-    script_enabled: true,
+    script_enabled: false,
     intro_message: false,
     outro_message: false,
     simbrief_id: null,
