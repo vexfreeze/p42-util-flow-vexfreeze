@@ -119,7 +119,6 @@ app.fetchSimBrief = () => {
                 console.log("Failed to get data from SimBrief - check username/id");
             } else {
                 app.setRoute(data);
-                console.log(route_data);
             }
 
         })
@@ -135,6 +134,7 @@ app.setRoute = (data) => {
         + data.destination.icao_code + '/' + data.destination.plan_rwy;
 
     if (previous_route_data != route_data) {
+        console.log(route_data);
         app.$api.twitch.send_message(route_data);
     }
 }
