@@ -69,8 +69,8 @@ run(() => {
 });
 
 exit(() => {
-	app.msg_offline();
-	console.log("RouteBot exited");
+    app.msg_offline();
+    console.log("RouteBot exited");
 });
 
 twitch_message((message) => {
@@ -127,12 +127,16 @@ app.fetchSimBrief = () => {
 }
 
 app.setRoute = (data) => {
+    const previous_route_data = route_data;
+
     route_data = route_message
         + data.origin.icao_code + '/' + data.origin.plan_rwy + ' '
         + data.general.route + ' '
         + data.destination.icao_code + '/' + data.destination.plan_rwy;
 
-    app.$api.twitch.send_message(route_data);
+    if (previous_route_data != route_data) {
+        app.$api.twitch.send_message(route_data);
+    }
 }
 
 function isEmptyObject(object) {
