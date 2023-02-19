@@ -2,6 +2,8 @@ let isSleeping = null;
 
 run(() => {
     this.$api.command.script_message_send("failbot", "toggle_sleep", () => { });
+
+    return true;
 });
 
 state(() => {
@@ -9,7 +11,7 @@ state(() => {
         isSleeping = sleeping;
     });
 
-    if(isSleeping === null){
+    if (isSleeping === null) {
         return;
     }
 
@@ -17,7 +19,7 @@ state(() => {
 });
 
 info(() => {
-    if(isSleeping === null){
+    if (isSleeping === null) {
         return;
     }
 
@@ -25,8 +27,9 @@ info(() => {
 });
 
 style(() => {
-    if(isSleeping === null){
+    if (isSleeping === null) {
         return;
     }
-    return isSleeping  ? null : "active";
+
+    return isSleeping ? null : "active";
 });
