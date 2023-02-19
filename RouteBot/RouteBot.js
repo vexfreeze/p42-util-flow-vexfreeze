@@ -1,4 +1,4 @@
-const fetch_interval_seconds = 60;
+const fetch_interval = 60 * 1000;
 const route_prefix = 'Route: ';
 
 let last_fetch = null;
@@ -116,7 +116,7 @@ twitch_message((message) => {
                     app.$api.twitch.send_message(app.store.route, reply_prefix);
 
                     const now = new Date();
-                    if (now - last_fetch > fetch_interval_seconds * 1000) {
+                    if (now - last_fetch > fetch_interval) {
                         app.fetchSimBrief();
                     }
 
@@ -135,7 +135,7 @@ twitch_message((message) => {
 //     }
 
 //     const now = new Date();
-//     if (now - last_fetch > fetch_interval_seconds * 1000) {
+//     if (now - last_fetch > fetch_interval) {
 //         app.fetchSimBrief();
 //     }
 // });
