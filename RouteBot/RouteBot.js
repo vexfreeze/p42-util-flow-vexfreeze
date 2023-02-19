@@ -20,7 +20,13 @@ app.store = persisted ? persisted : app.store;
 app.msg_online = () => (app.store.intro_message ? app.$api.twitch.send_message('/me RouteBot is online and ' + (app.store.script_enabled ? 'active' : 'disabled') + '!') : null);
 app.msg_offline = () => (app.store.outro_message ? app.$api.twitch.send_message('/me RouteBot is going offline!') : null);
 
-if (app.$api.twitch.is_connected()) app.msg_online();
+app.init = () => {
+    if (app.$api.twitch.is_connected()) {
+        app.msg_online();
+    }
+
+    app.fetchSimBrief();
+}
 
 settings_define({
     simbrief_id: {
@@ -176,7 +182,7 @@ app.setRoute = (data) => {
         + data.general.route + ' '
         + data.destination.icao_code + '/' + data.destination.plan_rwy;
 
-    if (route != app.store.route) {
+    if (route != app.store.route) { 
         console.log(route);
         app.store.route = route;
         app.$api.datastore.export(app.store);
@@ -196,3 +202,5 @@ function isEmptyObject(object) {
 function isEmpty(str) {
     return (str === null || str === '' || str === undefined || isEmptyObject(str));
 }
+
+app.init();
