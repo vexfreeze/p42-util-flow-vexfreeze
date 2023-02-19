@@ -3,9 +3,9 @@
 Use !route command in twitch chat to show latest SimBrief Route
 
 RouteBot checks simbrief for new route
-* on flight start
-* when refresh button is clicked
-* on !route command but in this case at most once per minute
+* When loading flight
+* When refresh button is clicked
+* On !route command but in this case at most once per minute
 
 Navigraph confirmed that api endpoint is not intended for polling, hence no automatic route updates until ther is a viable solution
 
