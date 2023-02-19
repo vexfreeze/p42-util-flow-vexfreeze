@@ -122,7 +122,7 @@ twitch_message((message) => {
                     const now = new Date();
 
                     if (now - last_fetch > fetch_interval) {
-                        app.fetchSimBrief(true);
+                        app.fetchSimBrief(true, reply_prefix);
                     } else {
                         app.$api.twitch.send_message(app.store.route, reply_prefix);
                     }
@@ -152,7 +152,7 @@ exit(() => {
     console.log("RouteBot exited");
 });
 
-app.fetchSimBrief = (forceMessage) => {
+app.fetchSimBrief = (forceMessage, reply_prefix) => {
     const id = app.store.simbrief_id;
 
     if (!id) {
@@ -170,14 +170,14 @@ app.fetchSimBrief = (forceMessage) => {
             if (isEmpty(data) || isEmpty(data.general)) {
                 console.log("Failed to get data from SimBrief - check username/id");
             } else {
-                app.handleRoute(data, forceMessage);
+                app.handleRoute(data, forceMessage, reply_prefix);
             }
 
         })
         .catch((e) => console.log("Error: " + e));
 }
 
-app.handleRoute = (data, forceMessage) => {
+app.handleRoute = (data, forceMessage, reply_prefix) => {
     route = route_prefix
         + data.origin.icao_code + '/' + data.origin.plan_rwy + ' '
         + data.general.route + ' '
@@ -189,13 +189,13 @@ app.handleRoute = (data, forceMessage) => {
         app.$api.datastore.export(app.store);
 
         if (app.store.script_enabled && app.store.update_message) {
-            app.$api.twitch.send_message("New " + route);
+            app.$api.twitch.send_message("New " + route, reply_prefix);
         }
     } else {
         console.log("No route change");
 
         if (app.store.script_enabled && forceMessage) {
-            app.$api.twitch.send_message(route);
+            app.$api.twitch.send_message(route, reply_prefix);
         }
     }
 }
