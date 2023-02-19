@@ -2,7 +2,7 @@
 
 Use !route command in twitch chat to show latest SimBrief Route
 
-RouteBot checks simbrief for new route
+RouteBot checks simbrief for new route:
 * When loading flight
 * When refresh button is clicked
 * On !route command but in this case at most once per minute
