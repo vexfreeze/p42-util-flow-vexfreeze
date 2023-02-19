@@ -114,6 +114,12 @@ twitch_message((message) => {
             switch (msg_params[0].toLowerCase()) {
                 case '!route': {
                     app.$api.twitch.send_message(app.store.route, reply_prefix);
+
+                    const now = new Date();
+                    if (now - last_fetch > fetch_interval_seconds * 1000) {
+                        app.fetchSimBrief();
+                    }
+
                     break;
                 }
             }
@@ -121,16 +127,18 @@ twitch_message((message) => {
     }
 });
 
-loop_1hz(() => {
-    if (!app.store.script_enabled) {
-        return;
-    }
+// // Navigraph confirmed that webapi endpoint is intended for polling
+// // Disabled until there is a viable solution
+// loop_1hz(() => {
+//     if (!app.store.script_enabled) {
+//         return;
+//     }
 
-    const now = new Date();
-    if (now - last_fetch > fetch_interval_seconds * 1000) {
-        app.fetchSimBrief();
-    }
-});
+//     const now = new Date();
+//     if (now - last_fetch > fetch_interval_seconds * 1000) {
+//         app.fetchSimBrief();
+//     }
+// });
 
 exit(() => {
     app.msg_offline();
@@ -174,7 +182,7 @@ app.setRoute = (data) => {
         app.$api.datastore.export(app.store);
 
         if (app.store.script_enabled && app.store.update_message) {
-            app.$api.twitch.send_message(route);
+            app.$api.twitch.send_message("New " + route);
         }
     } else {
         console.log("No route change");
