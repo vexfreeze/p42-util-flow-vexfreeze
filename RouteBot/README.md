@@ -9,7 +9,7 @@ RouteBot checks simbrief for new route
 
 Navigraph confirmed that api endpoint is not intended for polling, hence no automatic route updates until ther is a viable solution
 
-![image](https://user-images.githubusercontent.com/52785190/219901579-6c1e4497-2f5c-45c5-ba7b-9d3cd1c370d4.png)
+![image](https://user-images.githubusercontent.com/52785190/219948487-fe06d7ff-56ed-42e7-b9f7-15c8a041775d.png)
 
 ![image](https://user-images.githubusercontent.com/52785190/219902155-b3ff38df-c8c2-441a-b5b9-51faf584a8fb.png)
 ![image](https://user-images.githubusercontent.com/52785190/219902160-057e72cd-9254-4119-bb20-376d2dde53b0.png)
