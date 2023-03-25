@@ -88,7 +88,7 @@ this.settings = {
 				label: "Trigger by Moderators",
 				value: this.settings.store.trigger_moderator,
 				changed: (value) => {
-					this.settings.store.trigger_streamer = value;
+					this.settings.store.trigger_moderator = value;
 					this.$api.datastore.export(this.settings.store);
 				}
 			},
@@ -97,7 +97,7 @@ this.settings = {
 				label: "Trigger by Viewers",
 				value: this.settings.store.trigger_viewer,
 				changed: (value) => {
-					this.settings.store.trigger_streamer = value;
+					this.settings.store.trigger_viewer = value;
 					this.$api.datastore.export(this.settings.store);
 				}
 			},
