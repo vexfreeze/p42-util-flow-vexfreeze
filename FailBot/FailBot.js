@@ -1,3 +1,5 @@
+const prefix = "FailBot: ";
+
 const conditions = {
 	engine: {
 		0: { minRunning: 0, maxFailed: 0 },
@@ -84,7 +86,7 @@ this.settings = {
 			trigger_moderator: {
 				type: "checkbox",
 				label: "Trigger by Moderators",
-				value: this.settings.store.trigger_streamer,
+				value: this.settings.store.trigger_moderator,
 				changed: (value) => {
 					this.settings.store.trigger_streamer = value;
 					this.$api.datastore.export(this.settings.store);
@@ -93,7 +95,7 @@ this.settings = {
 			trigger_viewer: {
 				type: "checkbox",
 				label: "Trigger by Viewers",
-				value: this.settings.store.trigger_streamer,
+				value: this.settings.store.trigger_viewer,
 				changed: (value) => {
 					this.settings.store.trigger_streamer = value;
 					this.$api.datastore.export(this.settings.store);
@@ -110,7 +112,7 @@ this.settings = {
 			},
 			intro_message: {
 				type: "checkbox",
-				label: "Message online",
+				label: "Online message ",
 				value: this.settings.store.intro_message,
 				changed: (value) => {
 					this.settings.store.intro_message = value;
@@ -119,7 +121,7 @@ this.settings = {
 			},
 			outro_message: {
 				type: "checkbox",
-				label: "Message offline",
+				label: "Offline message",
 				value: this.settings.store.outro_message,
 				changed: (value) => {
 					this.settings.store.outro_message = value;
@@ -133,14 +135,14 @@ this.settings = {
 this.twitch = {
 	init: () => {
 		if (this.$api.twitch.is_connected()) {
-			this.twitch.message.online();
+			this.message.online();
 		}
 
 		twitch_connection(this.twitch.twitch_connection);
 		twitch_message(this.twitch.twitch_message);
 	},
 	twitch_connection: (state) => {
-		if (state) this.twitch.message.online();
+		if (state) this.message.online();
 	},
 	twitch_message: (message) => {
 		if (this.settings.store.script_enabled && message.parameters) {
@@ -162,23 +164,19 @@ this.twitch = {
 					}
 
 					case "!failengine": {
-						if (this.settings.store.sleeping) {
-							this.commands.sleeping(reply_prefix);
-							break;
+						if (this.twitch.shouldTriggerEvent(message, reply_prefix)) {
+							this.commands.failEngine(reply_prefix);
 						}
-
-						this.commands.failEngine(reply_prefix);
+						
 						break;
 					}
 
 					case "!fixengine":
 					case "!fixengines": {
-						if (this.settings.store.sleeping) {
-							this.commands.sleeping(reply_prefix);
-							break;
+						if (this.twitch.shouldTriggerEvent(message, reply_prefix)) {
+							this.commands.fixEngines(reply_prefix);
 						}
 
-						this.commands.fixEngines(reply_prefix);
 						break;
 					}
 
@@ -186,41 +184,71 @@ this.twitch = {
 						if (this.settings.store.fuel_events) {
 							this.commands.checkFuel(reply_prefix);
 						}
+
 						break;
 					}
 
 					case "!fueloff": {
-						if (this.settings.store.fuel_events) {
-							if (this.settings.store.sleeping) {
-								this.commands.sleeping(reply_prefix);
-								break;
-							}
-
+						if (this.settings.store.fuel_events && this.twitch.shouldTriggerEvent(message, reply_prefix)) {
 							this.commands.fuelOff(reply_prefix);
 						}
-						break;
-					}
 
-					case "!test": {
-						console.log(message);
+						break;
 					}
 				}
 			}
 		}
 	},
-	message: {
-		online: () => {
-			if (this.settings.store.intro_message) {
-				const sleeping = this.settings.store.sleeping ? "sleeping" : "active";
-				this.$api.twitch.send_message("/me FailBot is online and " + sleeping + "!");
-			}
-		},
-		offline: () => {
-			if (this.settings.store.intro_message) {
-				this.$api.twitch.send_message("/me FailBot is going offline!");
-			}
-		},
-	}
+	shouldTriggerEvent: (message, reply_prefix) => {
+		if (this.settings.store.sleeping) {
+			this.message.sleeping(reply_prefix);
+			return false;
+		}
+
+		if (this.settings.store.trigger_viewer) {
+			return true;
+		}
+
+		if (this.settings.store.trigger_moderator && message.tags.mod) {
+			return true;
+		}
+
+		if (message.tags.badges.broadcaster) {
+			return true;
+		}
+
+		if (this.settings.store.trigger_moderator) {
+			this.message.moderator(reply_prefix);
+		} else {
+			this.message.streamer(reply_prefix);
+		}
+		
+		return false;
+	},
+}
+
+this.message = {
+	online: () => {
+		if (this.settings.store.intro_message) {
+			const sleeping = this.settings.store.sleeping ? "sleeping" : "active";
+			this.$api.twitch.send_message("/me FailBot is online and " + sleeping + "!");
+		}
+	},
+	offline: () => {
+		if (this.settings.store.intro_message) {
+			this.$api.twitch.send_message("/me FailBot is going offline!");
+		}
+	},
+	sleeping: (reply_prefix) => {
+		this.$api.twitch.send_message(prefix + "Sleeping... Zzz...", reply_prefix);
+	},
+	moderator: (reply_prefix) => {
+		this.$api.twitch.send_message(prefix + "Only Moderators can trigger events with command", reply_prefix);
+	},
+	streamer: (reply_prefix) => {
+		this.$api.twitch.send_message(prefix + "Only Streamer can trigger events with command", reply_prefix);
+	},
+
 }
 
 this.core = {
@@ -294,14 +322,14 @@ this.commands = {
 			"!checkEngine",
 			"!failEngine",
 			"!fixEngine",
-			"!checkFuel",
-			"!fuelOff",
 		];
 
-		this.$api.twitch.send_message("FailBot: " + msg.join(" "), reply_prefix);
-	},
-	sleeping: (reply_prefix) => {
-		this.$api.twitch.send_message("FailBot: Sleeping... Zzz...", reply_prefix);
+		if (this.settings.store.fuel_events) {
+			msg.push("!checkFuel");
+			msg.push("!fuelOff");
+		}
+
+		this.$api.twitch.send_message(prefix + msg.join(" "), reply_prefix);
 	},
 	checkEngine: (reply_prefix) => {
 		const enginesCount = this.engine.getCount();
@@ -312,7 +340,7 @@ this.commands = {
 			message += "Engine " + engineNumber + " is " + this.engine.getState(engineNumber) + ". ";
 		}
 
-		this.$api.twitch.send_message("FailBot: " + message, reply_prefix);
+		this.$api.twitch.send_message(prefix + message, reply_prefix);
 	},
 	failEngine: (reply_prefix) => {
 		const enginesCount = this.engine.getCount();
@@ -320,30 +348,30 @@ this.commands = {
 		const enginesFailedCount = this.engine.getFailedCount();
 		const maxFailed = conditions.engine[enginesCount].maxFailed;
 		if (enginesFailedCount >= maxFailed) {
-			this.$api.twitch.send_message("FailBot: Umm... We already have " + enginesFailedCount + " failed engine" + (enginesFailedCount > 1 ? "s" : ""), reply_prefix);
+			this.$api.twitch.send_message(prefix + "Umm... We already have " + enginesFailedCount + " failed engine" + (enginesFailedCount > 1 ? "s" : ""), reply_prefix);
 			return;
 		}
 
 		const enginesRunningCount = this.engine.getRunningCount();
 		const minRunning = conditions.engine[enginesCount].minRunning;
 		if (enginesRunningCount <= minRunning) {
-			this.$api.twitch.send_message("FailBot: Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
+			this.$api.twitch.send_message(prefix + "Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
 		}
 
 		const runningEngines = this.engine.getRunningEngines();
 		const engineNumber = this.utils.random(1, runningEngines.length);
 		this.engine.fail(engineNumber);
-		this.$api.twitch.send_message("FailBot: Aye Captain!", reply_prefix);
+		this.$api.twitch.send_message(prefix + "Aye Captain!", reply_prefix);
 	},
 	fixEngines: (reply_prefix) => {
 		if (!this.engine.isAnyFailed()) {
-			this.$api.twitch.send_message("FailBot: Umm... All engines are fine", reply_prefix);
+			this.$api.twitch.send_message(prefix + "Umm... All engines are fine", reply_prefix);
 			return;
 		}
 
 		this.engine.fixAll();
-		this.$api.twitch.send_message("FailBot: Consider it done!", reply_prefix);
+		this.$api.twitch.send_message(prefix + "Consider it done!", reply_prefix);
 	},
 	checkFuel: (reply_prefix) => {
 		const enginesCount = this.engine.getCount();
@@ -354,7 +382,7 @@ this.commands = {
 			message += "Fuel Selector " + engineNumber + " is " + this.fuel.getState(engineNumber) + ". ";
 		}
 
-		this.$api.twitch.send_message("FailBot: " + message, reply_prefix);
+		this.$api.twitch.send_message(prefix + message, reply_prefix);
 	},
 	fuelOff: (reply_prefix) => {
 		const enginesCount = this.engine.getCount();
@@ -362,14 +390,14 @@ this.commands = {
 		const enginesRunningCount = this.engine.getRunningCount();
 		const minRunning = conditions.engine[enginesCount].minRunning;
 		if (enginesRunningCount <= minRunning) {
-			this.$api.twitch.send_message("FailBot: Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
+			this.$api.twitch.send_message(prefix + "Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
 		}
 
 		const runningEngines = this.engine.getRunningEngines();
 		const fuelSelectorNumber = this.utils.random(1, runningEngines.length);
 		this.fuel.off(fuelSelectorNumber);
-		this.$api.twitch.send_message("FailBot: Aye Captain!", reply_prefix);
+		this.$api.twitch.send_message(prefix + "Aye Captain!", reply_prefix);
 	},
 }
 
