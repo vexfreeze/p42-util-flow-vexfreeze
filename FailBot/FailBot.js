@@ -8,6 +8,9 @@ const conditions = {
 	}
 }
 
+// For BlackSquare Analog series:
+// Failure listed in manual as "L ENGINE FAILURE" becomes "H:BKSQ_FAILURE_L_FUEL_QTY"
+
 const config = {
 	engine: {
 		failedCondition: {
@@ -23,14 +26,14 @@ const config = {
 			4: { variable: "A:ENG COMBUSTION:4", type: "Bool", value: 1 },
 		},
 		failAction: {
-			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
-			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
+			1: { variable: "H:BKSQ_FAILURE_L_ENGINE_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "H:BKSQ_FAILURE_R_ENGINE_FAILURE", type: "Bool", value: 1, },
 			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
 			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
 		fixAction: {
-			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
-			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
+			1: { variable: "H:BKSQ_FAILURE_L_ENGINE_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "H:BKSQ_FAILURE_R_ENGINE_FAILURE", type: "Bool", value: 1, },
 			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
 			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
@@ -52,184 +55,238 @@ const config = {
 	}
 };
 
-this.store = {
-	script_enabled: true,
-	intro_message: false,
-	outro_message: false,
-	sleeping: false,
-};
-
-const persisted = this.$api.datastore.import();
-this.store = persisted ? persisted : this.store;
-
-settings_define({
-	sleeping: {
-		type: "checkbox",
-		label: "Sleeping -  fail and fix actions are inactive",
-		value: this.store.sleeping,
-		changed: (value) => {
-			this.store.sleeping = value;
-			this.$api.datastore.export(this.store);
-		}
+this.settings = {
+	store: {
+		script_enabled: true,
+		intro_message: true,
+		outro_message: true,
+		sleeping: false,
+		trigger_moderator: true,
+		trigger_viewer: false,
+		fuel_events: false,
 	},
-	intro_message: {
-		type: "checkbox",
-		label: "Send message in chat when FailBot goes online",
-		value: this.store.intro_message,
-		changed: (value) => {
-			this.store.intro_message = value;
-			this.$api.datastore.export(this.store);
-		}
+	init: () => {
+		const persisted = this.$api.datastore.import();
+		this.settings.store = persisted ? persisted : this.settings.store;
+		this.settings.settings_define();
 	},
-	outro_message: {
-		type: "checkbox",
-		label: "Send message in chat when FailBot goes offline",
-		value: this.store.outro_message,
-		changed: (value) => {
-			this.store.outro_message = value;
-			this.$api.datastore.export(this.store);
-		}
+	settings_define: () => {
+		settings_define({
+			sleeping: {
+				type: "checkbox",
+				label: "Sleeping (events off)",
+				value: this.settings.store.sleeping,
+				changed: (value) => {
+					this.settings.store.sleeping = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			trigger_moderator: {
+				type: "checkbox",
+				label: "Trigger by Moderators",
+				value: this.settings.store.trigger_streamer,
+				changed: (value) => {
+					this.settings.store.trigger_streamer = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			trigger_viewer: {
+				type: "checkbox",
+				label: "Trigger by Viewers",
+				value: this.settings.store.trigger_streamer,
+				changed: (value) => {
+					this.settings.store.trigger_streamer = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			fuel_events: {
+				type: "checkbox",
+				label: "Fuel commands",
+				value: this.settings.store.fuel_events,
+				changed: (value) => {
+					this.settings.store.fuel_events = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			intro_message: {
+				type: "checkbox",
+				label: "Message online",
+				value: this.settings.store.intro_message,
+				changed: (value) => {
+					this.settings.store.intro_message = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			outro_message: {
+				type: "checkbox",
+				label: "Message offline",
+				value: this.settings.store.outro_message,
+				changed: (value) => {
+					this.settings.store.outro_message = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+		});
 	}
-});
-
-this.message = {
-	online: () => {
-		if (this.store.intro_message) {
-			const sleeping = this.store.sleeping ? "sleeping" : "active";
-			this.$api.twitch.send_message("/me FailBot is online and " + sleeping + "!");
-		}
-	},
-	offline: () => {
-		if (this.store.intro_message) {
-			this.$api.twitch.send_message("/me FailBot is going offline!");
-		}
-	},
 }
 
-if (this.$api.twitch.is_connected()) {
-	this.message.online();
-}
-
-twitch_connection((state) => { if (state) this.message.online(); });
-
-script_message_rcv((caller_reference_name, message, reply_callback) => {
-	if (message === "sleeping") {
-		reply_callback(this.store.sleeping);
-		return;
-	}
-
-	if (message === "toggle_sleep") {
-		this.store.sleeping = !this.store.sleeping;
-		this.$api.datastore.export(this.store);
-		this.$api.twitch.send_message("/me FailBot is now " + (this.store.sleeping ? "sleeping" : "active") + "!");
-		reply_callback(this.store.sleeping);
-		return;
-	}
-});
-
-exit(() => {
-	this.message.offline();
-	console.log("FailBot exited");
-});
-
-run(() => {
-	this.store.script_enabled = !this.store.script_enabled;
-	if (this.store.script_enabled) {
-		if (this.store.intro_message) {
-			this.$api.twitch.send_message("/me FailBot is now enabled and " + (this.store.sleeping ? "sleeping" : "active") + "!");
+this.twitch = {
+	init: () => {
+		if (this.$api.twitch.is_connected()) {
+			this.twitch.message.online();
 		}
-	} else {
-		if (this.store.outro_message) {
-			this.$api.twitch.send_message("/me FailBot is now disabled!");
-		}
-	}
 
-	this.$api.datastore.export(this.store);
-	return true;
-});
+		twitch_connection(this.twitch.twitch_connection);
+		twitch_message(this.twitch.twitch_message);
+	},
+	twitch_connection: (state) => {
+		if (state) this.twitch.message.online();
+	},
+	twitch_message: (message) => {
+		if (this.settings.store.script_enabled && message.parameters) {
+			if (message.tags ? message.tags["display-name"] : false) {
+				let reply_prefix = "@reply-parent-msg-id=" + message.tags["id"];
+				let msg_params = message.parameters.split(" ");
 
-state(() => {
-	if (this.$api.twitch.is_connected()) {
-		return !this.store.script_enabled ? "mdi:comment-off-outline:Fail Bot" : "mdi:comment:Fail Bot"
-	} else {
-		return "mdi:wifi-strength-off:Fail Bot";
-	}
-});
-
-info(() => {
-	if (this.$api.twitch.is_connected()) {
-		return !this.store.script_enabled ? "FailBot Disabled" : "FailBot Enabled";
-	} else {
-		return "FailBot Unavailable";
-	}
-});
-
-style(() => {
-	if (this.$api.twitch.is_connected()) {
-		return this.store.script_enabled ? "active" : "error";
-	} else {
-		return "error";
-	}
-});
-
-twitch_message((message) => {
-	if (this.store.script_enabled && message.parameters) {
-		if (message.tags ? message.tags["display-name"] : false) {
-			let reply_prefix = "@reply-parent-msg-id=" + message.tags["id"];
-			let msg_params = message.parameters.split(" ");
-
-			switch (msg_params[0].toLowerCase()) {
-				case '!commands':
-				case "!failbot": {
-					this.commands.failBot(reply_prefix);
-					break;
-				}
-
-				case "!checkengine":
-				case "!checkengines": {
-					this.commands.checkEngine(reply_prefix);
-					break;
-				}
-
-				case "!failengine": {
-					if (this.store.sleeping) {
-						this.commands.sleeping(reply_prefix);
+				switch (msg_params[0].toLowerCase()) {
+					case '!commands':
+					case "!failbot": {
+						this.commands.failBot(reply_prefix);
 						break;
 					}
 
-					this.commands.failEngine(reply_prefix);
-					break;
-				}
-
-				case "!fixengine":
-				case "!fixengines": {
-					if (this.store.sleeping) {
-						this.commands.sleeping(reply_prefix);
+					case "!checkengine":
+					case "!checkengines": {
+						this.commands.checkEngine(reply_prefix);
 						break;
 					}
 
-					this.commands.fixEngines(reply_prefix);
-					break;
-				}
+					case "!failengine": {
+						if (this.settings.store.sleeping) {
+							this.commands.sleeping(reply_prefix);
+							break;
+						}
 
-				case "!checkfuel": {
-					this.commands.checkFuel(reply_prefix);
-					break;
-				}
-
-				case "!fueloff": {
-					if (this.store.sleeping) {
-						this.commands.sleeping(reply_prefix);
+						this.commands.failEngine(reply_prefix);
 						break;
 					}
 
-					this.commands.fuelOff(reply_prefix);
-					break;
+					case "!fixengine":
+					case "!fixengines": {
+						if (this.settings.store.sleeping) {
+							this.commands.sleeping(reply_prefix);
+							break;
+						}
+
+						this.commands.fixEngines(reply_prefix);
+						break;
+					}
+
+					case "!checkfuel": {
+						if (this.settings.store.fuel_events) {
+							this.commands.checkFuel(reply_prefix);
+						}
+						break;
+					}
+
+					case "!fueloff": {
+						if (this.settings.store.fuel_events) {
+							if (this.settings.store.sleeping) {
+								this.commands.sleeping(reply_prefix);
+								break;
+							}
+
+							this.commands.fuelOff(reply_prefix);
+						}
+						break;
+					}
+
+					case "!test": {
+						console.log(message);
+					}
 				}
 			}
 		}
+	},
+	message: {
+		online: () => {
+			if (this.settings.store.intro_message) {
+				const sleeping = this.settings.store.sleeping ? "sleeping" : "active";
+				this.$api.twitch.send_message("/me FailBot is online and " + sleeping + "!");
+			}
+		},
+		offline: () => {
+			if (this.settings.store.intro_message) {
+				this.$api.twitch.send_message("/me FailBot is going offline!");
+			}
+		},
 	}
-});
+}
+
+this.core = {
+	init: () => {
+		run(this.core.run);
+		state(this.core.state);
+		info(this.core.info);
+		style(this.core.style);
+		script_message_rcv(this.core.script_message_rcv);
+	},
+	exit: () => {
+		this.message.offline();
+		console.log("FailBot exited");
+	},
+	run: () => {
+		this.settings.store.script_enabled = !this.settings.store.script_enabled;
+		if (this.settings.store.script_enabled) {
+			if (this.settings.store.intro_message) {
+				this.$api.twitch.send_message("/me FailBot is now enabled and " + (this.settings.store.sleeping ? "sleeping" : "active") + "!");
+			}
+		} else {
+			if (this.settings.store.outro_message) {
+				this.$api.twitch.send_message("/me FailBot is now disabled!");
+			}
+		}
+
+		this.$api.datastore.export(this.settings.store);
+		return true;
+	},
+	state: () => {
+		if (this.$api.twitch.is_connected()) {
+			return !this.settings.store.script_enabled ? "mdi:comment-off-outline:Fail Bot" : "mdi:comment:Fail Bot"
+		} else {
+			return "mdi:wifi-strength-off:Fail Bot";
+		}
+	},
+	info: () => {
+		if (this.$api.twitch.is_connected()) {
+			return !this.settings.store.script_enabled ? "FailBot Disabled" : "FailBot Enabled";
+		} else {
+			return "FailBot Unavailable";
+		}
+	},
+	style: () => {
+		if (this.$api.twitch.is_connected()) {
+			return this.settings.store.script_enabled ? "active" : "error";
+		} else {
+			return "error";
+		}
+	},
+	script_message_rcv: (caller_reference_name, message, reply_callback) => {
+		if (message === "sleeping") {
+			reply_callback(this.settings.store.sleeping);
+			return;
+		}
+
+		if (message === "toggle_sleep") {
+			this.settings.store.sleeping = !this.settings.store.sleeping;
+			this.$api.datastore.export(this.settings.store);
+			this.set_settings();
+			this.$api.twitch.send_message("/me FailBot is now " + (this.settings.store.sleeping ? "sleeping" : "active") + "!");
+			reply_callback(this.settings.store.sleeping);
+			return;
+		}
+	},
+}
 
 this.commands = {
 	failBot: (reply_prefix) => {
@@ -254,7 +311,7 @@ this.commands = {
 			const engineNumber = i + 1;
 			message += "Engine " + engineNumber + " is " + this.engine.getState(engineNumber) + ". ";
 		}
-		
+
 		this.$api.twitch.send_message("FailBot: " + message, reply_prefix);
 	},
 	failEngine: (reply_prefix) => {
@@ -439,5 +496,9 @@ this.utils = {
 		return Math.floor(Math.random() * (max - min + 1) + min)
 	},
 };
+
+this.settings.init();
+this.core.init();
+this.twitch.init();
 
 console.log("FailBot loaded");
