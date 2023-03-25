@@ -80,7 +80,7 @@ twitch_message((message) => {
 						'!wx',
 						'!runways'
 					];
-					this.$api.twitch.send_message('ATCBot: ' + msg.join(' '), reply_prefix);
+					this.$api.twitch.send_message('ATCBot: ' + msg.join(' '));
 					break;
 				}
 

@@ -1,4 +1,5 @@
 const prefix = "FailBot: ";
+const aircraft = this.$api.variables.get("A:Title", "String");
 
 const conditions = {
 	engine: {
@@ -9,9 +10,6 @@ const conditions = {
 		4: { minRunning: 1, maxFailed: 3 },
 	}
 }
-
-// For BlackSquare Analog series:
-// Failure listed in manual as "L ENGINE FAILURE" becomes "H:BKSQ_FAILURE_L_FUEL_QTY"
 
 const config = {
 	engine: {
@@ -28,18 +26,18 @@ const config = {
 			4: { variable: "A:ENG COMBUSTION:4", type: "Bool", value: 1 },
 		},
 		failAction: {
-			1: { variable: "H:BKSQ_FAILURE_L_ENGINE_FAILURE", type: "Bool", value: 1, },
-			2: { variable: "H:BKSQ_FAILURE_R_ENGINE_FAILURE", type: "Bool", value: 1, },
+			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
 			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
 			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
 		fixAction: {
-			1: { variable: "H:BKSQ_FAILURE_L_ENGINE_FAILURE", type: "Bool", value: 1, },
-			2: { variable: "H:BKSQ_FAILURE_R_ENGINE_FAILURE", type: "Bool", value: 1, },
+			1: { variable: "K:TOGGLE_ENGINE1_FAILURE", type: "Bool", value: 1, },
+			2: { variable: "K:TOGGLE_ENGINE2_FAILURE", type: "Bool", value: 1, },
 			3: { variable: "K:TOGGLE_ENGINE3_FAILURE", type: "Bool", value: 1, },
 			4: { variable: "K:TOGGLE_ENGINE4_FAILURE", type: "Bool", value: 1, },
 		},
-		count: { variable: "A:NUMBER OF ENGINES", type: "Number" }, // minimum 0, maximum 4
+		count: { variable: "A:NUMBER OF ENGINES", type: "Number" }, // minimum 0, maximum 4 before SU12, 16 on SU12?
 	},
 	fuel: {
 		offCondition: {
@@ -56,6 +54,14 @@ const config = {
 		},
 	}
 };
+
+if(aircraft.startsWith("Black Square Baron")){
+	config.engine.failAction[1].variable = "H:BKSQ_FAILURE_L_ENGINE_FAILURE";
+	config.engine.failAction[2].variable = "H:BKSQ_FAILURE_R_ENGINE_FAILURE";
+	
+	config.engine.fixAction[1].variable = "H:BKSQ_FAILURE_L_ENGINE_FAILURE";
+	config.engine.fixAction[2].variable = "H:BKSQ_FAILURE_R_ENGINE_FAILURE";
+}
 
 this.settings = {
 	store: {
@@ -153,7 +159,7 @@ this.twitch = {
 				switch (msg_params[0].toLowerCase()) {
 					case '!commands':
 					case "!failbot": {
-						this.commands.failBot(reply_prefix);
+						this.commands.failBot();
 						break;
 					}
 
@@ -331,7 +337,7 @@ this.commands = {
 
 		this.$api.twitch.send_message(prefix + msg.join(" "), reply_prefix);
 	},
-	checkEngine: (reply_prefix) => {
+	checkEngine: () => {
 		const enginesCount = this.engine.getCount();
 		let message = "";
 
@@ -340,7 +346,7 @@ this.commands = {
 			message += "Engine " + engineNumber + " is " + this.engine.getState(engineNumber) + ". ";
 		}
 
-		this.$api.twitch.send_message(prefix + message, reply_prefix);
+		this.$api.twitch.send_message(prefix + message);
 	},
 	failEngine: (reply_prefix) => {
 		const enginesCount = this.engine.getCount();
