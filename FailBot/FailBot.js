@@ -1,17 +1,16 @@
 const prefix = "FailBot: ";
 const aircraft = this.$api.variables.get("A:Title", "String");
 
-const conditions = {
-	engine: {
-		0: { minRunning: 0, maxFailed: 0 },
-		1: { minRunning: 0, maxFailed: 1 },
-		2: { minRunning: 1, maxFailed: 1 },
-		3: { minRunning: 1, maxFailed: 2 },
-		4: { minRunning: 1, maxFailed: 3 },
-	}
-}
-
 const config = {
+	conditions: {
+		engine: {
+			0: { minRunning: 0, maxFailed: 0 },
+			1: { minRunning: 0, maxFailed: 1 },
+			2: { minRunning: 1, maxFailed: 1 },
+			3: { minRunning: 1, maxFailed: 2 },
+			4: { minRunning: 1, maxFailed: 3 },
+		}
+	},
 	engine: {
 		failedCondition: {
 			1: { variable: "A:ENG FAILED:1", type: "Bool", value: 1 },
@@ -52,13 +51,23 @@ const config = {
 			3: { variable: "K:FUEL_SELECTOR_3_SET", type: "Enum", value: 0, },
 			4: { variable: "K:FUEL_SELECTOR_4_SET", type: "Enum", value: 0, },
 		},
+	},
+	firebot: {
+		update_interval_ms: 10000,
+		events: {
+			update_interval_ms: 10000,
+			pause: "http://localhost:7472/api/v1/effects/preset/48f93dc0-cb41-11ed-ac72-f9b06d0df55f",
+			unpause: "http://localhost:7472/api/v1/effects/preset/afd0d3a0-cb64-11ed-ac72-f9b06d0df55f",
+			failEngineAvailable: "http://localhost:7472/api/v1/effects/preset/d276d7b0-cb41-11ed-adb2-a13f208bfc77",
+			fixEngineAvailable: "http://localhost:7472/api/v1/effects/preset/ff684650-cb41-11ed-adb2-a13f208bfc77",
+		}
 	}
 };
 
-if(aircraft.startsWith("Black Square Baron")){
+if (aircraft.startsWith("Black Square Baron")) {
 	config.engine.failAction[1].variable = "H:BKSQ_FAILURE_L_ENGINE_FAILURE";
 	config.engine.failAction[2].variable = "H:BKSQ_FAILURE_R_ENGINE_FAILURE";
-	
+
 	config.engine.fixAction[1].variable = "H:BKSQ_FAILURE_L_ENGINE_FAILURE";
 	config.engine.fixAction[2].variable = "H:BKSQ_FAILURE_R_ENGINE_FAILURE";
 }
@@ -71,6 +80,7 @@ this.settings = {
 		sleeping: false,
 		trigger_moderator: true,
 		trigger_viewer: false,
+		firebot_integration: false,
 		fuel_events: false,
 	},
 	init: () => {
@@ -104,6 +114,15 @@ this.settings = {
 				value: this.settings.store.trigger_viewer,
 				changed: (value) => {
 					this.settings.store.trigger_viewer = value;
+					this.$api.datastore.export(this.settings.store);
+				}
+			},
+			firebot_integration: {
+				type: "checkbox",
+				label: "Firebot integration",
+				value: this.settings.store.firebot_integration,
+				changed: (value) => {
+					this.settings.store.firebot_integration = value;
 					this.$api.datastore.export(this.settings.store);
 				}
 			},
@@ -173,7 +192,7 @@ this.twitch = {
 						if (this.twitch.shouldTriggerEvent(message, reply_prefix)) {
 							this.commands.failEngine(reply_prefix);
 						}
-						
+
 						break;
 					}
 
@@ -228,7 +247,7 @@ this.twitch = {
 		} else {
 			this.message.streamer(reply_prefix);
 		}
-		
+
 		return false;
 	},
 }
@@ -254,16 +273,60 @@ this.message = {
 	streamer: (reply_prefix) => {
 		this.$api.twitch.send_message(prefix + "Only Streamer can trigger events with command", reply_prefix);
 	},
+}
 
+this.firebot = {
+	last_update: null,
+	pause: () => {
+		fetch(config.firebot.events.pause);
+	},
+	unpause: () => {
+		fetch(config.firebot.events.unpause);
+	},
+	failEngineAvailable: () => {
+		fetch(config.firebot.events.failEngineAvailable);
+	},
+	fixEngineAvailable: () => {
+		fetch(config.firebot.events.fixEngineAvailable);
+	},
+	update: () => {
+
+		const now = new Date;
+		const diff = now - this.firebot.last_update;
+		if (diff < config.firebot.update_interval_ms) {
+			return;
+		}
+
+		this.firebot.last_update = now;
+
+		if (!this.settings.store.script_enabled || this.settings.store.sleeping) {
+			this.firebot.pause();
+			return;
+		} else {
+			this.firebot.unpause();
+		}
+
+		if (this.engine.canFailEngine()) {
+			this.firebot.failEngineAvailable();
+		}
+
+		if (this.engine.isAnyFailed()) {
+			this.firebot.fixEngineAvailable();
+		}
+	}
 }
 
 this.core = {
 	init: () => {
 		run(this.core.run);
+
 		state(this.core.state);
 		info(this.core.info);
 		style(this.core.style);
+
 		script_message_rcv(this.core.script_message_rcv);
+
+		loop_1hz(this.firebot.update);
 	},
 	exit: () => {
 		this.message.offline();
@@ -349,17 +412,13 @@ this.commands = {
 		this.$api.twitch.send_message(prefix + message);
 	},
 	failEngine: (reply_prefix) => {
-		const enginesCount = this.engine.getCount();
-
-		const enginesFailedCount = this.engine.getFailedCount();
-		const maxFailed = conditions.engine[enginesCount].maxFailed;
-		if (enginesFailedCount >= maxFailed) {
+		if (!this.engine.canFailEngine()) {
 			this.$api.twitch.send_message(prefix + "Umm... We already have " + enginesFailedCount + " failed engine" + (enginesFailedCount > 1 ? "s" : ""), reply_prefix);
 			return;
 		}
 
 		const enginesRunningCount = this.engine.getRunningCount();
-		const minRunning = conditions.engine[enginesCount].minRunning;
+		const minRunning = config.conditions.engine[enginesCount].minRunning;
 		if (enginesRunningCount <= minRunning) {
 			this.$api.twitch.send_message(prefix + "Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
@@ -394,7 +453,7 @@ this.commands = {
 		const enginesCount = this.engine.getCount();
 
 		const enginesRunningCount = this.engine.getRunningCount();
-		const minRunning = conditions.engine[enginesCount].minRunning;
+		const minRunning = config.conditions.engine[enginesCount].minRunning;
 		if (enginesRunningCount <= minRunning) {
 			this.$api.twitch.send_message(prefix + "Umm... We really need one at least " + minRunning + " engine" + (minRunning > 1 ? "s" : "") + " running", reply_prefix);
 			return;
@@ -417,6 +476,13 @@ this.engine = {
 		const condition = config.engine.runningCondition[engineNumber];
 		const value = this.$api.variables.get(condition.variable, condition.type);
 		return value === condition.value;
+	},
+	canFailEngine: () => {
+		const enginesCount = this.engine.getCount();
+		const enginesFailedCount = this.engine.getFailedCount();
+		const maxFailed = config.conditions.engine[enginesCount].maxFailed;
+
+		return enginesFailedCount < maxFailed;
 	},
 	isAnyFailed: () => {
 		const enginesCount = this.engine.getCount();
