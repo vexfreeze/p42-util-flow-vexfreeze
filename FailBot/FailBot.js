@@ -237,7 +237,7 @@ this.twitch = {
 			return true;
 		}
 
-		if (this.settings.store.trigger_moderator && message.tags.mod) {
+		if (this.settings.store.trigger_moderator && message.tags.mod === "1") {
 			return true;
 		}
 
